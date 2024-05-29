@@ -1,63 +1,65 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"github.com/google/uuid"
+	"github.com/tyasheliy/code_rooms/services/editor/internal/config"
 	"github.com/tyasheliy/code_rooms/services/editor/internal/repo"
 	"github.com/tyasheliy/code_rooms/services/editor/internal/usecase"
+	"github.com/tyasheliy/code_rooms/services/editor/internal/webapi"
+	"github.com/tyasheliy/code_rooms/services/editor/internal/ws"
+	"github.com/tyasheliy/code_rooms/services/editor/pkg/v1/cache"
 	"github.com/tyasheliy/code_rooms/services/editor/pkg/v1/logger"
+	"log"
 	"os"
 )
 
 func main() {
+	cfg, err := config.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	l := logger.NewSlogAppLogger(logger.AppLoggerOptions{
-		Format: logger.TEXT_FORMAT,
-		Level:  logger.INFO_LEVEL,
+		Format: cfg.Format,
+		Level:  cfg.Level,
 		Output: os.Stdout,
 	})
 
-	//keyBuilder := cache.NewKeyBuilder(cache.KeyBuilderOptions{
-	//	Separator: "_",
-	//})
-	//keyBuilder.Pre("editor")
-	//c := cache.NewInMemoryAppCache(keyBuilder, 5*time.Minute, 15*time.Minute)
+	kb := cache.NewKeyBuilder(cache.KeyBuilderOptions{
+		Separator: "_",
+	}).Pre("editor")
 
-	os.Mkdir("./source", 0750)
+	c := cache.NewInMemoryAppCache(kb, cfg.Expiration, cfg.Cleanup)
 
-	sourceRepo := repo.NewFileSourceRepo("./source")
-	service := usecase.NewSourceUseCase(l, sourceRepo)
+	// session
+	sessionRepo := repo.NewCacheSessionRepo(c)
+	sessionService := usecase.NewSessionUseCase(l, sessionRepo)
 
-	ctx := context.Background()
+	// entry
+	entryRepo := repo.NewCacheEntryRepo(c)
+	entryService := usecase.NewEntryUseCase(l, entryRepo)
 
-	sessionId := uuid.New()
+	// source
+	sourceRepo := repo.NewFileSourceRepo(cfg.SourceDir)
+	sourceService := usecase.NewSourceUseCase(l, sourceRepo)
 
-	source, err := service.Create(ctx,
-		sessionId,
-		"test.txt",
-		[]byte("test data"),
+	wsApp := ws.NewWsApp(
+		l,
+		entryService,
+		sessionService,
+		sourceService,
 	)
 
-	fmt.Println(source, err)
+	go func() {
+		err = wsApp.Run(cfg.SocketPort)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 
-	source2, err := service.Create(ctx,
-		uuid.New(),
-		"test.txt",
-		[]byte("test data"),
-	)
+	webapiApp := webapi.NewWebApiApp(l, entryService, sessionService)
 
-	fmt.Println(source2, err)
-
-	err = service.UpdateData(ctx, source.Id, []byte("updated data"))
-
-	fmt.Println(err)
-
-	sources, err := service.GetBySession(ctx, sessionId)
-
-	fmt.Println(len(sources), err)
-
-	//err = service.Delete(ctx, source.Id)
-	//err = service.Delete(ctx, source2.Id)
-
-	fmt.Println(err)
+	err = webapiApp.Run(cfg.WebApiPort)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

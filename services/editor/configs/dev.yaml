@@ -1,0 +1,12 @@
+app:
+  source_dir: ./source
+  webapi_port: 8080
+  socket_port: 3000
+
+cache:
+  expiration: 5
+  cleanup: 10
+
+logger:
+  level: info
+  format: text

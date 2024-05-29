@@ -6,8 +6,8 @@ import (
 )
 
 type Entry struct {
-	Id      uuid.UUID
-	Session uuid.UUID
+	Id      uuid.UUID `json:"id"`
+	Session uuid.UUID `json:"session"`
 }
 
 type EntryRepo interface {

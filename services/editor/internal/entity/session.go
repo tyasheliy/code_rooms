@@ -6,7 +6,7 @@ import (
 )
 
 type Session struct {
-	Id uuid.UUID
+	Id uuid.UUID `json:"id"`
 }
 
 type SessionRepo interface {

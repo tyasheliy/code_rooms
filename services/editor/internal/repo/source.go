@@ -88,12 +88,16 @@ func (r *FileSourceRepo) Delete(ctx context.Context, id uuid.UUID) error {
 		return errors.New("source not found")
 	}
 
+	return r.delete(file)
+}
+
+func (r *FileSourceRepo) delete(file *fileSourceRepoFile) error {
 	err := os.Remove(file.path)
 	if err != nil {
 		return err
 	}
 
-	delete(r.files, id)
+	delete(r.files, file.entity.Id)
 
 	return nil
 }
@@ -104,7 +108,7 @@ func (r *FileSourceRepo) Update(ctx context.Context, source entity.Source) error
 		return errors.New("source not found")
 	}
 
-	f, err := os.OpenFile(file.path, os.O_WRONLY, 0750)
+	f, err := os.OpenFile(file.path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0750)
 	if err != nil {
 		return err
 	}
@@ -141,6 +145,43 @@ func (r *FileSourceRepo) GetBySession(ctx context.Context, sessionId uuid.UUID) 
 	}
 
 	return entities, nil
+}
+
+func (r *FileSourceRepo) DeleteBySession(ctx context.Context, sessionId uuid.UUID) error {
+	for _, file := range r.files {
+		if file.entity.Session == sessionId {
+			err := r.delete(file)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *FileSourceRepo) GetByFilename(ctx context.Context, sessionId uuid.UUID, filename string) (*entity.Source, error) {
+	var file *fileSourceRepoFile
+
+	for _, f := range r.files {
+		if f.entity.Session == sessionId && f.entity.Name == filename {
+			file = f
+		}
+	}
+
+	if file == nil {
+		return nil, errors.New("source not found")
+	}
+
+	data, err := os.ReadFile(file.path)
+	if err != nil {
+		return nil, err
+	}
+
+	source := *file.entity
+	source.Data = data
+
+	return &source, nil
 }
 
 func (r *FileSourceRepo) getPath(args ...string) (string, error) {

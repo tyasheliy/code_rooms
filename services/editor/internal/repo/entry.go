@@ -12,6 +12,10 @@ type CacheEntryRepo struct {
 	cache cache.AppCache
 }
 
+func NewCacheEntryRepo(cache cache.AppCache) *CacheEntryRepo {
+	return &CacheEntryRepo{cache}
+}
+
 func (r *CacheEntryRepo) GetById(ctx context.Context, id uuid.UUID) (*entity.Entry, error) {
 	key := r.cache.BuildCacheKey("entry", id.String())
 

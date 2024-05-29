@@ -26,6 +26,8 @@ func (s *EntryUseCase) Create(ctx context.Context, sessionId uuid.UUID) (*entity
 		Session: sessionId,
 	}
 
+	// TODO: check if session exists
+
 	err := s.repo.Create(ctx, entry)
 	if err != nil {
 		s.logger.Error(ctx, "error creating entry",
@@ -41,20 +43,21 @@ func (s *EntryUseCase) Create(ctx context.Context, sessionId uuid.UUID) (*entity
 	return entry, nil
 }
 
-func (s *EntryUseCase) Check(ctx context.Context, id uuid.UUID) (bool, error) {
-	_, err := s.repo.GetById(ctx, id)
+func (s *EntryUseCase) GetById(ctx context.Context, id uuid.UUID) (*entity.Entry, error) {
+	entry, err := s.repo.GetById(ctx, id)
 	if err != nil {
-		s.logger.Error(ctx, "error checking entry",
+		s.logger.Error(ctx, "error getting entry by id",
 			"id", id,
 			"error", err,
 		)
-		return false, err
+		return nil, err
 	}
-	s.logger.Debug(ctx, "checked entry",
+	s.logger.Debug(ctx, "got entry by id",
+		"entry", entry,
 		"id", id,
 	)
 
-	return true, nil
+	return entry, nil
 }
 
 func (s *EntryUseCase) Delete(ctx context.Context, id uuid.UUID) error {

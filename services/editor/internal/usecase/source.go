@@ -49,17 +49,17 @@ func (s *SourceUseCase) Create(ctx context.Context, sessionId uuid.UUID, filenam
 	return &source, nil
 }
 
-func (s *SourceUseCase) UpdateData(ctx context.Context, id uuid.UUID, data []byte) error {
-	source, err := s.repo.GetById(ctx, id)
+func (s *SourceUseCase) UpdateDataByFilename(ctx context.Context, sessionId uuid.UUID, filename string, data []byte) error {
+	source, err := s.repo.GetByFilename(ctx, sessionId, filename)
 	if err != nil {
 		s.logger.Error(ctx, "error getting source",
-			"id", id,
+			"filename", filename,
 			"error", err,
 		)
 		return errors.New("source not found")
 	}
 	s.logger.Debug(ctx, "got source",
-		"id", id,
+		"filename", filename,
 	)
 
 	source.Data = data
@@ -67,13 +67,13 @@ func (s *SourceUseCase) UpdateData(ctx context.Context, id uuid.UUID, data []byt
 	err = s.repo.Update(ctx, *source)
 	if err != nil {
 		s.logger.Error(ctx, "error updating source",
-			"id", id,
+			"filename", filename,
 			"error", err,
 		)
 		return errors.New("failed to update source")
 	}
 	s.logger.Debug(ctx, "updated source",
-		"id", id,
+		"filename", filename,
 	)
 
 	return nil
@@ -93,6 +93,39 @@ func (s *SourceUseCase) GetBySession(ctx context.Context, sessionId uuid.UUID) (
 	)
 
 	return sources, nil
+}
+
+func (s *SourceUseCase) DeleteBySession(ctx context.Context, sessionId uuid.UUID) error {
+	err := s.repo.DeleteBySession(ctx, sessionId)
+	if err != nil {
+		s.logger.Error(ctx, "error deleting source by session",
+			"sessionId", sessionId,
+			"error", err,
+		)
+		return errors.New("failed to delete sources")
+	}
+	s.logger.Debug(ctx, "deleted sources by session", "sessionId", sessionId)
+
+	return nil
+}
+
+func (s *SourceUseCase) GetByFilename(ctx context.Context, sessionId uuid.UUID, filename string) (*entity.Source, error) {
+	source, err := s.repo.GetByFilename(ctx, sessionId, filename)
+	if err != nil {
+		s.logger.Error(ctx, "error getting source by filename",
+			"session", sessionId,
+			"filename", filename,
+			"error", err,
+		)
+		return nil, errors.New("failed to get source")
+	}
+	s.logger.Debug(ctx, "got source by filename",
+		"sessionId", sessionId,
+		"filename", filename,
+		"source", source,
+	)
+
+	return source, nil
 }
 
 func (s *SourceUseCase) Delete(ctx context.Context, id uuid.UUID) error {
