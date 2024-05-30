@@ -7,6 +7,6 @@ cache:
   expiration: 5
   cleanup: 10
 
-logger:
+log:
   level: info
   format: text

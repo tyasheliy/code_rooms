@@ -71,8 +71,8 @@ func New() (*Config, error) {
 			Expiration: vp.GetDuration("cache.expiration") * time.Minute,
 		},
 		LoggerConfig: LoggerConfig{
-			Level:  vp.GetString("logger.level"),
-			Format: vp.GetString("logger.format"),
+			Level:  vp.GetString("log.level"),
+			Format: vp.GetString("log.format"),
 		},
 	}, nil
 }

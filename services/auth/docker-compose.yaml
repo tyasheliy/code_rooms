@@ -1,0 +1,13 @@
+version: "3.7"
+
+services:
+  db:
+    image: postgres:15
+    container_name: auth_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${STORAGE_DATABASE}
+      - POSTGRES_USER=${STORAGE_USER}
+      - POSTGRES_PASSWORD=${STORAGE_PASSWORD}
+      - PGPORT=${STORAGE_PORT}

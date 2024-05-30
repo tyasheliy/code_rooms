@@ -1,0 +1,12 @@
+app:
+  webapi_port: 8080
+  token:
+    expiration: 10
+
+cache:
+  cleanup: 10
+  expiration: 15
+
+log:
+  format: text
+  level: debug
