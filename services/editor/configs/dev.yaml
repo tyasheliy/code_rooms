@@ -1,10 +1,10 @@
 app:
-  source_dir: ./source
-  webapi_port: 8080
+  source_dir: /etc/source
+  webapi_port: 8000
   socket_port: 3000
 
 cache:
-  expiration: 5
+  expiration: 7200
   cleanup: 10
 
 log:

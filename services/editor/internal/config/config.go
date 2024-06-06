@@ -53,6 +53,7 @@ func New() (*Config, error) {
 	vp.SetConfigName(build)
 	vp.AddConfigPath(".")
 	vp.AddConfigPath("./configs")
+	vp.AddConfigPath("/etc/editor")
 
 	err := vp.ReadInConfig()
 	if err != nil {

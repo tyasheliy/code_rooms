@@ -1,0 +1,70 @@
+version: "3.7"
+
+services:
+  spa:
+    container_name: code_rooms_spa
+    build:
+      context: ./services/spa
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    networks:
+      - code_rooms
+
+  auth:
+    container_name: code_rooms_auth_service
+    build:
+      context: ./services/auth
+      dockerfile: ./deploy/app/Dockerfile
+    volumes:
+      - ./services/auth/configs:/etc/auth
+      - ./services/auth/migrations:/etc/migrations
+    env_file:
+      - ./services/auth/.env
+    restart: always
+    networks:
+      - code_rooms
+
+  auth-db:
+    image: postgres:15
+    container_name: code_rooms_auth_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${AUTH_STORAGE_DATABASE}
+      - POSTGRES_USER=${AUTH_STORAGE_USER}
+      - POSTGRES_PASSWORD=${AUTH_STORAGE_PASSWORD}
+    networks:
+      - code_rooms
+
+  editor:
+    container_name: code_rooms_editor_service
+    build:
+      context: ./services/editor
+      dockerfile: ./deploy/app/Dockerfile
+    volumes:
+      - ./services/editor/configs:/etc/editor
+      - ./services/editor/source:/etc/source
+    env_file:
+      - ./services/editor/.env
+    networks:
+      - code_rooms
+    restart: always
+
+
+  gateway:
+    container_name: code_rooms_gateway
+    image: nginx:1.27.0
+    volumes:
+      - .docker/gateway/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+    networks:
+      - code_rooms
+    depends_on:
+      - spa
+    restart: always
+
+networks:
+  code_rooms:
+    driver: bridge

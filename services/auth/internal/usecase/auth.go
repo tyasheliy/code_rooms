@@ -9,26 +9,30 @@ import (
 	"github.com/tyasheliy/code_rooms/services/editor/pkg/v1/logger"
 )
 
+const default_role = "user"
+
 type AuthUseCase struct {
 	logger     logger.AppLogger
 	jwtBuilder *jwtutils.Builder
 	hasher     hasher.Hasher
-	repo       entity.UserRepo
+	user       entity.UserRepo
+	role       entity.RoleRepo
 }
 
-func NewAuth(logger logger.AppLogger, jwtBuilder *jwtutils.Builder, hasher hasher.Hasher, repo entity.UserRepo) *AuthUseCase {
+func NewAuth(logger logger.AppLogger, jwtBuilder *jwtutils.Builder, hasher hasher.Hasher, user entity.UserRepo, role entity.RoleRepo) *AuthUseCase {
 	return &AuthUseCase{
 		logger:     logger,
 		jwtBuilder: jwtBuilder,
 		hasher:     hasher,
-		repo:       repo,
+		user:       user,
+		role:       role,
 	}
 }
 
 func (s *AuthUseCase) Authenticate(ctx context.Context, login string, password string) (accessToken string, refreshToken string, err error) {
-	user, err := s.repo.GetByLogin(ctx, login)
+	user, err := s.user.GetByLogin(ctx, login)
 	if err != nil {
-		s.logger.Error(ctx, "error.auth.authenticate.repo.get_by_login",
+		s.logger.Error(ctx, "error.auth.authenticate.user.get_by_login",
 			"login", login,
 			"error", err,
 		)
@@ -44,7 +48,7 @@ func (s *AuthUseCase) Authenticate(ctx context.Context, login string, password s
 		return "", "", err
 	}
 
-	accessToken, err = s.jwtBuilder.Claim("id", user.Id).BuildRaw()
+	accessToken, err = s.jwtBuilder.Claim("id", user.Id).Claim("role", user.RoleId).BuildRaw()
 	if err != nil {
 		s.logger.Error(ctx, "error.auth.authenticate.jwt_builder.build_raw",
 			"error", err,
@@ -56,7 +60,7 @@ func (s *AuthUseCase) Authenticate(ctx context.Context, login string, password s
 }
 
 func (s *AuthUseCase) Register(ctx context.Context, login string, password string) (*entity.User, error) {
-	user, err := s.repo.GetByLogin(ctx, login)
+	user, err := s.user.GetByLogin(ctx, login)
 	if err == nil {
 		err := errors.New("user already exists")
 
@@ -76,14 +80,24 @@ func (s *AuthUseCase) Register(ctx context.Context, login string, password strin
 		return nil, errors.New("failed to register user")
 	}
 
+	defaultRole, err := s.role.GetByName(ctx, default_role)
+	if err != nil {
+		s.logger.Error(ctx, "error.auth.register.role.get_by_name",
+			"role_name", default_role,
+			"error", err,
+		)
+		return nil, errors.New("failed to register user")
+	}
+
 	user = &entity.User{
+		RoleId:       defaultRole.Id,
 		Login:        login,
 		PasswordHash: passwordHash,
 	}
 
-	saved, err := s.repo.Create(ctx, user)
+	saved, err := s.user.Create(ctx, user)
 	if err != nil {
-		s.logger.Error(ctx, "error.auth.register.repo.create",
+		s.logger.Error(ctx, "error.auth.register.user.create",
 			"login", login,
 			"error", err,
 		)

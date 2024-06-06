@@ -62,11 +62,19 @@ func (a *WsApp) handler(w http.ResponseWriter, r *http.Request) {
 
 	entry, err := a.entry.GetById(ctx, entryId)
 	if err != nil {
+		a.logger.Error(ctx, "failed to find entry",
+			"entry", entryId.String(),
+			"error", err,
+		)
 		return
 	}
 
 	session, err := a.session.GetById(ctx, entry.Session)
 	if err != nil {
+		a.logger.Error(ctx, "failed to find session",
+			"session", entry.Session.String(),
+			"error", err,
+		)
 		return
 	}
 

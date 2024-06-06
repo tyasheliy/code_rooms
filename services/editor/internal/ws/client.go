@@ -3,19 +3,25 @@ package ws
 import (
 	"context"
 	"github.com/gorilla/websocket"
+	"log"
+	"time"
 )
 
 type client struct {
-	hub  *sessionHub
-	conn *websocket.Conn
-	send chan *message
+	hub        *sessionHub
+	conn       *websocket.Conn
+	send       chan *message
+	pingTicker *time.Ticker
 }
 
 func newClient(hub *sessionHub, conn *websocket.Conn) *client {
+	t := time.NewTicker(30 * time.Second)
+
 	return &client{
-		hub:  hub,
-		conn: conn,
-		send: make(chan *message),
+		hub:        hub,
+		conn:       conn,
+		send:       make(chan *message),
+		pingTicker: t,
 	}
 }
 
@@ -24,7 +30,10 @@ func (c *client) process(ctx context.Context) {
 	defer func() {
 		c.hub.leave <- c
 		close(c.send)
-		c.conn.Close()
+		err := c.conn.Close()
+		if err != nil {
+			log.Println(err)
+		}
 	}()
 
 	go func() {
@@ -33,6 +42,7 @@ func (c *client) process(ctx context.Context) {
 			case msg := <-c.send:
 				if msg == nil {
 					// TODO: понять почему при отключении передает нуловое сообщение
+					log.Println("message is nil")
 					return
 				}
 
@@ -42,23 +52,35 @@ func (c *client) process(ctx context.Context) {
 				}
 				err := c.conn.WriteJSON(&rawMsg)
 				if err != nil {
+					log.Println(err)
 					return
 				}
-
+				break
+			case <-c.pingTicker.C:
+				err := c.conn.WriteMessage(websocket.PingMessage, []byte("ping"))
+				if err != nil {
+					log.Println(err)
+					return
+				}
 				break
 			}
 		}
 	}()
 
 	for {
+		_ = c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		c.conn.SetPongHandler(func(message string) error {
+			_ = c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+			return nil
+		})
+
 		rawMsg := make(map[string]interface{})
 		err := c.conn.ReadJSON(&rawMsg)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				return
+				log.Printf("error: %v", err)
 			}
-
-			continue
+			break
 		}
 
 		msg := message{

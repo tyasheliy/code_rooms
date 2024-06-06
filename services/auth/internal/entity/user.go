@@ -4,6 +4,7 @@ import "context"
 
 type User struct {
 	Id           int64
+	RoleId       int
 	Login        string
 	PasswordHash string
 }

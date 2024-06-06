@@ -26,12 +26,13 @@ type TokenConfig struct {
 }
 
 type StorageConfig struct {
-	Driver   string
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Database string
+	Driver       string
+	Host         string
+	Port         string
+	User         string
+	Password     string
+	Database     string
+	MigrationDir string
 }
 
 type CacheConfig struct {
@@ -79,12 +80,13 @@ func New() (*Config, error) {
 			},
 		},
 		StorageConfig: StorageConfig{
-			Driver:   vp.GetString("storage_driver"),
-			Host:     vp.GetString("storage_host"),
-			Port:     vp.GetString("storage_port"),
-			User:     vp.GetString("storage_user"),
-			Password: vp.GetString("storage_password"),
-			Database: vp.GetString("storage_database"),
+			Driver:       vp.GetString("storage_driver"),
+			Host:         vp.GetString("storage_host"),
+			Port:         vp.GetString("storage_port"),
+			User:         vp.GetString("storage_user"),
+			Password:     vp.GetString("storage_password"),
+			Database:     vp.GetString("storage_database"),
+			MigrationDir: vp.GetString("storage_migration_dir"),
 		},
 		CacheConfig: CacheConfig{
 			Cleanup:    vp.GetDuration("cache.cleanup") * time.Minute,

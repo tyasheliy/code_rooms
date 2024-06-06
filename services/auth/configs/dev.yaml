@@ -1,5 +1,5 @@
 app:
-  webapi_port: 8080
+  webapi_port: 8000
   token:
     expiration: 10
 

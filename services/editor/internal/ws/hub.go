@@ -3,6 +3,8 @@ package ws
 import (
 	"context"
 	"github.com/google/uuid"
+	"log"
+	"time"
 )
 
 type sessionHub struct {
@@ -35,6 +37,7 @@ func (h *sessionHub) serve(ctx context.Context) {
 
 			sources, err := h.app.source.GetBySession(ctx, h.sessionId)
 			if err != nil {
+				log.Println(err)
 				continue
 			}
 
@@ -48,12 +51,17 @@ func (h *sessionHub) serve(ctx context.Context) {
 			delete(h.clients, cl)
 
 			if len(h.clients) == 0 {
-				h.shutdown()
-				return
+				go func() {
+					time.Sleep(30 * time.Second)
+					if len(h.clients) == 0 {
+						h.shutdown()
+					}
+				}()
 			}
 		case msg := <-h.broadcast:
 			err := h.app.source.UpdateDataByFilename(ctx, h.sessionId, msg.filename, msg.data)
 			if err != nil {
+				log.Println(err)
 				continue
 			}
 

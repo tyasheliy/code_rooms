@@ -1,13 +1,13 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/tyasheliy/code_rooms/services/auth/internal/config"
 	"github.com/tyasheliy/code_rooms/services/auth/internal/repo/factory"
 	"github.com/tyasheliy/code_rooms/services/auth/internal/storage"
 	"github.com/tyasheliy/code_rooms/services/auth/internal/usecase"
+	"github.com/tyasheliy/code_rooms/services/auth/internal/webapi"
+	"github.com/tyasheliy/code_rooms/services/auth/internal/webapi/handler"
 	"github.com/tyasheliy/code_rooms/services/auth/pkg/v1/hasher"
 	"github.com/tyasheliy/code_rooms/services/auth/pkg/v1/jwtutils"
 	"github.com/tyasheliy/code_rooms/services/editor/pkg/v1/cache"
@@ -28,13 +28,18 @@ func main() {
 		Output: os.Stdout,
 	})
 
-	db, err := storage.BuildDbConn(&cfg.StorageConfig)
+	opts, closeConn, err := storage.BuildStorageOpts(&cfg.StorageConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer closeConn()
 
-	s := storage.New(db)
-	defer s.Close()
+	s := storage.New(opts)
+
+	err = s.Migrate()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	keyBuilder := cache.NewKeyBuilder(cache.KeyBuilderOptions{Separator: "_"})
 
@@ -49,10 +54,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	auth := usecase.NewAuth(l, jwtBuilder, h, userRepo)
-	_ = usecase.NewUser(l, c, userRepo)
+	roleRepo, err := factory.CreateRoleRepo(cfg.Driver, s)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	//_, _ = auth.Register(context.Background(), "test1", "test")
-	t, _, err := auth.Authenticate(context.Background(), "test1", "test")
-	fmt.Println(t, err)
+	auth := usecase.NewAuth(l, jwtBuilder, h, userRepo, roleRepo)
+	user := usecase.NewUser(l, c, userRepo)
+
+	app := webapi.NewWebApiApp(&cfg.AppConfig, &webapi.Handlers{
+		User: handler.NewUser(user),
+		Auth: handler.NewAuth(auth),
+	})
+
+	if err = app.Run(); err != nil {
+		log.Fatal(err)
+	}
 }

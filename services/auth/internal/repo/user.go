@@ -27,8 +27,8 @@ func (r *PostgresUserRepo) Create(ctx context.Context, user *entity.User) (*enti
 	}
 
 	query, _, err := goqu.Insert(user_table).
-		Cols("login", "password").
-		Vals(goqu.Vals{user.Login, user.PasswordHash}).
+		Cols("login", "password", "role_id").
+		Vals(goqu.Vals{user.Login, user.PasswordHash, user.RoleId}).
 		ToSQL()
 
 	if err != nil {
@@ -49,7 +49,9 @@ func (r *PostgresUserRepo) Create(ctx context.Context, user *entity.User) (*enti
 }
 
 func (r *PostgresUserRepo) GetById(ctx context.Context, id int64) (*entity.User, error) {
-	query, _, err := goqu.From(user_table).Where(goqu.Ex{"id": id}).ToSQL()
+	query, _, err := goqu.From(user_table).
+		Select("id", "role_id", "login", "password").
+		Where(goqu.Ex{"id": id}).ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +60,7 @@ func (r *PostgresUserRepo) GetById(ctx context.Context, id int64) (*entity.User,
 
 	var user entity.User
 
-	err = row.Scan(&user.Id, &user.Login, &user.PasswordHash)
+	err = row.Scan(&user.Id, &user.RoleId, &user.Login, &user.PasswordHash)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +73,10 @@ func (r *PostgresUserRepo) GetByLogin(ctx context.Context, login string) (*entit
 }
 
 func (r *PostgresUserRepo) getByLogin(ctx context.Context, login string) (*entity.User, error) {
-	query, _, err := goqu.From(user_table).Where(goqu.Ex{"login": login}).ToSQL()
+	query, _, err := goqu.From(user_table).
+		Select("id", "role_id", "login", "password").
+		Where(goqu.Ex{"login": login}).
+		ToSQL()
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +85,7 @@ func (r *PostgresUserRepo) getByLogin(ctx context.Context, login string) (*entit
 
 	var user entity.User
 
-	err = row.Scan(&user.Id, &user.Login, &user.PasswordHash)
+	err = row.Scan(&user.Id, &user.RoleId, &user.Login, &user.PasswordHash)
 	if err != nil {
 		return nil, err
 	}

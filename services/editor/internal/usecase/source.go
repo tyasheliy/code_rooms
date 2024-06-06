@@ -52,15 +52,29 @@ func (s *SourceUseCase) Create(ctx context.Context, sessionId uuid.UUID, filenam
 func (s *SourceUseCase) UpdateDataByFilename(ctx context.Context, sessionId uuid.UUID, filename string, data []byte) error {
 	source, err := s.repo.GetByFilename(ctx, sessionId, filename)
 	if err != nil {
-		s.logger.Error(ctx, "error getting source",
-			"filename", filename,
-			"error", err,
+		id := uuid.New()
+
+		sourceVal := entity.Source{
+			Id:      id,
+			Name:    filename,
+			Data:    data,
+			Session: sessionId,
+		}
+
+		err = s.repo.Create(ctx, sourceVal)
+
+		if err != nil {
+			return err
+		}
+
+		source = &sourceVal
+
+		s.logger.Debug(ctx, "created source",
+			"id", id.String(),
+			"name", filename,
+			"session_id", sessionId.String(),
 		)
-		return errors.New("source not found")
 	}
-	s.logger.Debug(ctx, "got source",
-		"filename", filename,
-	)
 
 	source.Data = data
 

@@ -6,6 +6,7 @@ import (
 	"github.com/tyasheliy/code_rooms/services/auth/internal/entity"
 	"github.com/tyasheliy/code_rooms/services/editor/pkg/v1/cache"
 	"github.com/tyasheliy/code_rooms/services/editor/pkg/v1/logger"
+	"strconv"
 )
 
 type UserUseCase struct {
@@ -23,7 +24,7 @@ func NewUser(logger logger.AppLogger, cache cache.AppCache, repo entity.UserRepo
 }
 
 func (s *UserUseCase) GetById(ctx context.Context, id int64) (*entity.User, error) {
-	cacheKey := s.cache.BuildCacheKey("user", string(id))
+	cacheKey := s.cache.BuildCacheKey("user", strconv.Itoa(int(id)))
 
 	cached, exists := s.cache.Get(ctx, cacheKey)
 	if exists {
@@ -48,7 +49,7 @@ func (s *UserUseCase) GetById(ctx context.Context, id int64) (*entity.User, erro
 		return nil, errors.New("user not found")
 	}
 
-	err = s.cache.Set(ctx, cacheKey, user)
+	err = s.cache.Set(ctx, cacheKey, *user)
 	if err != nil {
 		s.logger.Warn(ctx, "warn.user.get_by_id.cache.set",
 			"cache_key", cacheKey,

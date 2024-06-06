@@ -3,6 +3,7 @@ package webapi
 import (
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/tyasheliy/code_rooms/services/editor/internal/usecase"
 	"github.com/tyasheliy/code_rooms/services/editor/internal/webapi/handler"
 	"github.com/tyasheliy/code_rooms/services/editor/pkg/v1/logger"
@@ -19,7 +20,7 @@ func NewWebApiApp(logger logger.AppLogger,
 ) *WebApiApp {
 	e := echo.New()
 
-	api := e.Group("/api/v1")
+	api := e.Group("/api/v1", middleware.CORSWithConfig(middleware.CORSConfig{}))
 
 	entries := api.Group("/entries")
 	entryHandler := handler.NewEntryHandler(entry)
