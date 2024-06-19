@@ -268,8 +268,7 @@ function handleFileChange(file) {
 }
 
 function connect(e) {
-  const connUrl =
-    "ws://" + window.location.hostname + "/api/v1/editor/socket/" + e;
+  const connUrl = "ws://" + window.location.host + "/api/v1/editor/socket/" + e;
   const conn = new WebSocket(connUrl);
 
   conn.onopen = (ev) => {
