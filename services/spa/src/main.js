@@ -8,7 +8,7 @@ import axios from "axios";
 
 const app = createApp(App);
 
-axios.defaults.baseURL = "http://localhost/";
+axios.defaults.baseURL = "http://" + window.location.hostname + "/";
 
 app.use(ElementPlus);
 

@@ -41,7 +41,6 @@ func (c *client) process(ctx context.Context) {
 			select {
 			case msg := <-c.send:
 				if msg == nil {
-					// TODO: понять почему при отключении передает нуловое сообщение
 					log.Println("message is nil")
 					return
 				}
